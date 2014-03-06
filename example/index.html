@@ -23,7 +23,7 @@
 
     <div class="body">
         <div>Name: <input type="text" rv-value="android:name"/></div>
-
+        <a href="#/offices/edit/android">Android offices details</a>
         <h3>Options</h3>
         <ul>
             <!-- 1) Nested models support -->
@@ -32,6 +32,21 @@
             <li>Release <input type="text" rv-value="android:options:release"></li>
         </ul>
 
+
+        <h3>
+            Android Offices
+            <button rv-on-click="android.addOffice">Add</button>
+        </h3>
+
+        <ul>
+            <li rv-each-office="android:offices">
+                Office name
+                <input type="text" rv-value="office:name"/>
+                <button rv-on-click="office.destroy">Remove</button>
+            </li>
+        </ul>
+        
+
         <h2>Jobs <button rv-on-click="android.addJob">Add</button></h2>
 
         <ul>
@@ -39,12 +54,13 @@
             <li rv-each-job="android:jobs" rv-id="job.cid">
                 <p>
                     Job name
+                    <a rv-href="job.getJobOfficesEditLink < :cid">Job offices details</a>
                     <input type="text" rv-value="job:name"/>
                     <button rv-on-click="job.destroy">Remove</button>
                 </p>
 
                 <h3>
-                    Offices
+                    Jobs offices
                     <button rv-on-click="job.addOffice">Add</button>
                 </h3>
 
@@ -60,6 +76,19 @@
         </ul>
     </div>
 
+    <pre class="log"></pre>
+</div>
+<div style="clear:both;"></div>
+<div class="details">
+    <h1>Offices details <button rv-on-click="details.addOffice">Add</button></h1>
+    <div>Name: <input type="text" rv-value="details:name"/></div>
+    <ul>
+        <li rv-each-office="details:offices">
+            Office name
+            <input type="text" rv-value="office:name"/>
+            <button rv-on-click="office.destroy">Remove</button>
+        </li>
+    </ul>
     <pre class="log"></pre>
 </div>
 <script type="text/javascript">
@@ -101,6 +130,10 @@
 
         addOffice: function () {
             this.get('offices').add({});
+        },
+
+        getJobOfficesEditLink: function () {
+            return '#/offices/edit/' + this.cid;
         }
     });
 
@@ -119,6 +152,10 @@
         },
         relations: [{
             type: Backbone.HasMany,
+            key: 'offices',
+            relatedModel: Office
+        }, {
+            type: Backbone.HasMany,
             key: 'jobs',
             relatedModel: Job
         }, {
@@ -128,11 +165,15 @@
         }],
         initialize: function () {
             this.set('name', 'Android id ' + Math.random().toString(16).slice(2, 10));
-            _.bindAll(this, 'addJob');
+            _.bindAll(this, 'addJob', 'addOffice');
         },
 
         addJob: function () {
             this.get('jobs').add({});
+        },
+
+        addOffice: function () {
+            this.get('offices').add({});
         }
     });
 
@@ -153,22 +194,90 @@
         }
     });
 
+    var DetailsView = Backbone.View.extend({
+        initialize: function () {
+
+            // rv-bind part
+            this.binding = rivets.bind(this.el, {
+                details: this.model
+            });
+        },
+
+        jsonData: function () {
+            return JSON.stringify(this.model.toJSON(), null, '    ');
+        },
+
+        loadModel: function (model) {
+            this.binding.unbind();
+            this.model = model;
+            // this.binding = rivets.bind(this.el, {
+            //     root: model
+            // });
+            this.initialize();
+
+            //this.binding.publishes();
+            console.log('load', model);
+            console.log('bind', this.binding);
+            // this.binding.update();
+            // this.binding.build();
+            //this.binding.publish();
+            //this.binding.sync();
+            //this.render();
+        }
+
+    });
+
+    var androidModel = new Android({
+        jobs: [{
+            offices: [{
+
+            }]
+        }]
+    });
+
     // Create android
     var android = new AndroidView({
         el: $('.android')[0],
         // Data skeleton
-        model: new Android({
-            jobs: [{
-                offices: [{
-
-                }]
-            }]
-        })
+        model: androidModel
     });
+
+    // Create android
+    var details = new DetailsView({
+        el: $('.details')[0],
+        // Data skeleton
+        model: androidModel
+    });
+
+    var Router = Backbone.Router.extend({
+        routes : {
+            'offices/edit/:id' : 'edit',
+            'bar' : 'bar'
+        },
+
+        edit : function(id) {
+            if (id !== 'android') {
+                model = androidModel.get('jobs').get(id);
+            } else {
+                model = androidModel;
+            }
+            if (typeof model === 'undefined') {
+                console.log(model);
+                alert('record not found');
+            } else {
+                details.loadModel(model);
+            }
+        }
+    });
+
+    var router = new Router();
+
+    Backbone.history.start();
 
     // inspect data
     $(document).click(function () {
-        $('pre').text(android.jsonData());
+        //$('.android pre').text(android.jsonData());
+        //$('.details pre').text(details.jsonData());
     }).click();
 
 </script>
